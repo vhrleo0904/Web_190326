@@ -29,6 +29,19 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public User loginUser(User user) {
+        List<User> userList = this.userRepository.findAll();
+
+        for(User f : userList) {
+            if(f.getEmail().equals(user.getEmail()) && f.getPassword().equals(user.getPassword())) {
+                return f;
+            }
+        }
+
+        return null;
+    }
+
+    @Override
     public User addUser(User user) {
         Optional<User> found = this.userRepository.findByEmail(user.getEmail());
         if(found.isPresent()) return null;

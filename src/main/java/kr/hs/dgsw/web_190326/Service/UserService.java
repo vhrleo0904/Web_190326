@@ -10,6 +10,8 @@ public interface UserService {
 
     User viewUser(Long id);
 
+    User loginUser(User user);
+
     User addUser(User user);
 
     boolean removeUser(Long id);

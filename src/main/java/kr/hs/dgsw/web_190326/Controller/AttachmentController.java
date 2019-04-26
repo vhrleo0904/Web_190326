@@ -1,7 +1,9 @@
 package kr.hs.dgsw.web_190326.Controller;
 
+import kr.hs.dgsw.web_190326.Domain.Comment;
 import kr.hs.dgsw.web_190326.Domain.User;
 import kr.hs.dgsw.web_190326.Protocol.AttachmentProtocol;
+import kr.hs.dgsw.web_190326.Service.CommentService;
 import kr.hs.dgsw.web_190326.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.FileCopyUtils;
@@ -21,6 +23,8 @@ public class AttachmentController {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    private CommentService commentService;
 
     @PostMapping("/attachment")
     public AttachmentProtocol upload(@RequestPart MultipartFile srcFile) {
@@ -52,6 +56,10 @@ public class AttachmentController {
                 User user = this.userService.viewUser(id);
                 filePath = user.getPath();
                 fileName = user.getImagename();
+            } else {
+                Comment comment = this.commentService.findById(id);
+                filePath = comment.getPath();
+                fileName = comment.getImagename();
             }
 
             System.out.println(filePath);

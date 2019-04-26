@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Data
-public class Comment {
+public class Comment implements Comparable<Comment> {
 
     @Id
     @GeneratedValue
@@ -19,6 +19,8 @@ public class Comment {
 
     private Long userId;
     private String content;
+    private String path;
+    private String imagename;
 
     @CreationTimestamp
     private LocalDateTime created;
@@ -80,5 +82,10 @@ public class Comment {
 
     public void setModified(LocalDateTime modified) {
         this.modified = modified;
+    }
+
+    @Override
+    public int compareTo(Comment o) {
+        return this.modified.compareTo(o.getModified());
     }
 }

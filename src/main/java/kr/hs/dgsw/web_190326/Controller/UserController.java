@@ -23,6 +23,11 @@ public class UserController {
         return this.userService.viewUser(id);
     }
 
+    @PostMapping("/loginuser")
+    public User loginUser(@RequestBody User user) {
+        return this.userService.loginUser(user);
+    }
+
     @PostMapping("/adduser")
     public User addUser(@RequestBody User user) {
         return this.userService.addUser(user);

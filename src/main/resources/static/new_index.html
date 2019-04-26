@@ -8,6 +8,9 @@
             crossorigin="anonymous"></script>
 
     <style>
+        * {
+            font-family: 나눔고딕;
+        }
         body {
             margin : 0;
         }
@@ -30,21 +33,303 @@
             background: cadetblue;
             top: 100px;
             bottom: 0;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
         }
-        /*footer {*/
-            /*height: 300px;*/
-            /*background: bisque;*/
-            /*position: fixed;*/
-            /*bottom: 0;*/
-            /*left: 0;*/
-            /*right: 0;*/
-        /*}*/
+        span {
+            font-size: 15px;
+            color: dimgrey;
+        }
+        .btn {
+            font-size: 15px;
+        }
+        /*footer {
+            height: 300px;
+            background: bisque;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }*/
     </style>
 </head>
 <body>
-    <header>HEADER</header>
-    <section>SECTION</section>
-    <aside>RIGHT</aside>
-    <!--<footer>FOOTER</footer>-->
+    <script>
+        let user = null;
+
+        let content = "";
+
+        async function addCommentNewLine(comment) {
+            try {
+                let found = await $.get("/viewuser/" + comment.userId);
+
+                $("#post-list").html(`
+                <div id="post${comment.id}" style="width: 100%; border: black; background: darkgray; margin-top: 10px; padding: 10px 0;">
+                    <img src="/attachment/comment/${comment.id}"><br>
+                    <div id="post-content${comment.id}">${comment.content}</div><br>
+                    <div>작성자 : ${found.username}</div>
+                    <div>
+                        <button class="btn" onclick="editComment(this, ${comment.id})">수정</button> <button class="btn" onclick="removeComment(this, ${comment.id})">삭제</button>
+                    </div>
+                </div>
+            ` + $("#post-list").html());
+            } catch (err) {
+                console.log(JSON.stringify(err));
+            }
+        }
+
+        async function getCommentList() {
+            try {
+                let response = await $.get("/listcomment");
+                //$("#comments-list").html(JSON.stringify(response));
+
+                for (let i = 0; i < response.length; i++) {
+                    let comment = response[i];
+
+                    addCommentNewLine(comment);
+                }
+            } catch (err) {
+                $("#comments-list").html(JSON.stringify(err));
+            }
+        }
+
+        function openLoginDialog() {
+            $("#container1").css("display", "flex").show();
+        }
+
+        function closeLoginDialog() {
+            $("#user-id").val("");
+            $("#user-password").val("");
+            $("#container1").hide();
+        }
+
+        function openPostDialog() {
+            if(user == null) {
+                openLoginDialog();
+                return;
+            }
+
+            $("#container2").css("display", "flex").show();
+        }
+
+        function closePostDialog() {
+            $("#comment-image").val("");
+            $("#comment-content").val("");
+            $("#container2").hide();
+        }
+
+        async function onLogin() {
+            let email = $("#user-email").val();
+            let password = $("#user-password").val();
+
+            if(email == "" || password == "") return;
+
+            try {
+                let data = {
+                    email: email,
+                    password: password
+                };
+
+                let response = await $.ajax({
+                    type: "POST",
+                    url: "/loginuser",
+                    data: JSON.stringify(data),
+                    contentType: "application/json"
+                });
+
+                user = response;
+
+                if(user.username == "") {
+                    alert("해당하는 유저를 찾지 못했습니다.");
+                    return;
+                }
+
+                $("#aside").html(`<div>
+                    <img src="/attachment/user/${user.id}">
+                    <div>이름 : ${user.username}</div>
+                    <div>이메일 : ${user.email}</div>
+                    <div>가입일 : ${user.joined}</div>
+                </div>`);
+                closeLoginDialog();
+            } catch (err) {
+                console.log(err);
+            }
+        }
+
+        async function onPost() {
+            let file = $("#comment-image")[0].files[0];
+            let content = $("#comment-content").val();
+
+            if(file == null) {
+                alert("이미지를 선택하세요.");
+                return;
+            }
+
+            if(content == "") {
+                alert("내용을 입력하세요.");
+                return;
+            }
+
+            let data;
+
+            try {
+                let formData = new FormData();
+                formData.append('srcFile', file);
+                let response = await $.ajax({
+                    type: 'POST',
+                    url: '/attachment',
+                    data: formData,
+                    processData: false,
+                    contentType: false
+                });
+                console.log(response);
+
+                if(response.storedPath == "ERROR") {
+                    alert("이미지 저장에 실패했습니다.");
+                    return;
+                }
+
+                data = {
+                    userId: user.id,
+                    content: content,
+                    path: response.storedPath,
+                    imagename: response.originalName
+                };
+            } catch (err) {
+                console.log(JSON.stringify(err));
+            }
+
+            try {
+                let response = await $.ajax({
+                    type: "POST",
+                    url: "/addcomment",
+                    contentType: "application/json",
+                    data: JSON.stringify(data)
+                });
+                console.log(response);
+
+                if(response == null) {
+                    alert("글 저장에 실패했습니다.");
+                    return;
+                }
+
+                addCommentNewLine(response);
+
+                closePostDialog();
+            } catch (err) {
+                console.log("image" + JSON.stringify(err));
+            }
+        }
+
+        async function editComment(button, id) {
+            if(user == null) {
+                openLoginDialog();
+                return;
+            }
+
+            content = $(`#post-content${id}`).html();
+
+            if($(button).text() == "수정") {
+                let input = `<input value="${content}">`
+                console.log(input);
+                $(`#post-content${id}`).html(input);
+                $(button).text("확인");
+                $(button).next().text("취소");
+            } else {
+                let edit = $(`#post-content${id}`).find("input:nth-child(1)").val();
+                let data = {
+                    content: edit
+                };
+                try {
+                    let response = await $.ajax({
+                        type: "PUT",
+                        url: `/editcomment/${id}`,
+                        contentType: "application/json",
+                        data: JSON.stringify(data)
+                    });
+                    console.log(response.content);
+
+                    $(`#post-content${id}`).html(response.content);
+
+                    $(button).text("수정");
+                    $(button).next().text("삭제");
+                } catch (err) {
+                    console.log(JSON.stringify(err));
+                }
+            }
+        }
+
+        async function removeComment(button, id) {
+            if(user == null) {
+                openLoginDialog();
+                return;
+            }
+            if($(button).text() == "삭제") {
+                try {
+                    let reponse = await $.ajax({
+                        type: "DELETE",
+                        url: `/deletecomment/${id}`
+                    });
+
+                    if (reponse)
+                        $(`#post${id}`).remove();
+                    else
+                        alert("해당 커멘트를 삭제하지 못했습니다");
+                } catch (err) {
+                    console.log(JSON.stringify(err));
+                }
+            } else {
+                $(button).text("삭제");
+                $(button).prev().text("수정");
+                $(`#post-content${id}`).html(content);
+            }
+        }
+
+        getCommentList();
+    </script>
+
+    <header>
+        <!--<h1 style="margin-left: 10px">DGSW SNS</h1>-->
+        <div style="font-size: 35px; color: gray; padding-top: 25px; text-align: center;">DGSW SNS</div>
+    </header>
+    <section style="text-align: center; justify-content: center; align-items: center;">
+        <button onclick="openPostDialog()" style="font-size: 25px; margin-top: 10px; width: 200px; height: 40px;">새로 글 쓰기</button>
+
+        <div id="post-list" style="font-size: 20px">
+
+        </div>
+    </section>
+    <aside id="aside">
+        <button style="font-size: 25px; margin-top: 10px; width: 130px; height: 40px;" onclick="openLoginDialog()">로그인</button>
+    </aside>
+
+    <div id="container1" style="display: none;">
+        <div id="login-container" style="display: flex; justify-content: center; align-items: center; position: fixed; width: 100vw; height: 100vh; background: #00000066; left: 0; top: 0;">
+            <div style="text-align:center; background: white; position: relative; width: 300px; ">
+                <div style="margin: 30px 0">로그인</div>
+                <div><input id="user-email" placeholder="사용자 아이디"></div>
+                <div><input id="user-password" placeholder="비밀번호" type="password"></div>
+                <div style="margin: 30px 0">
+                    <button onclick="onLogin()">확인</button>
+                    <button onclick="closeLoginDialog()">취소</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="container2" style="display: none;">
+        <div id="post-container" style="display: flex; justify-content: center; align-items: center; position: fixed; width: 100vw; height: 100vh; background: #00000066; left: 0; top: 0;">
+            <div style="text-align:center; background: white; position: relative; width: 500px; ">
+                <div style="margin: 30px 0">글쓰기</div>
+                <div>이미지 선택 : <input type="file" id="comment-image"></div>
+                <div><textarea id="comment-content" rows="12" cols="65" style="resize: none;"></textarea></div>
+                <div style="margin: 30px 0">
+                    <button onclick="onPost()">확인</button>
+                    <button onclick="closePostDialog()">취소</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

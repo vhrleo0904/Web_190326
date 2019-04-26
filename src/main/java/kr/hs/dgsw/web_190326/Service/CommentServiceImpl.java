@@ -9,9 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class CommentServiceImpl implements CommentService {
@@ -23,10 +21,10 @@ public class CommentServiceImpl implements CommentService {
 
     @PostConstruct
     private void init() {
-        User u = this.userRepository.save(new User("aaa", "aaa@dgsw"));
-        this.commentRepository.save(new Comment(u.getId(), "hi there 111"));
+        User u = this.userRepository.save(new User("aaa", "aaa", "aaa"));
+        /*this.commentRepository.save(new Comment(u.getId(), "hi there 111"));
         this.commentRepository.save(new Comment(u.getId(), "hi there 222"));
-        this.commentRepository.save(new Comment(u.getId(), "hi there 333"));
+        this.commentRepository.save(new Comment(u.getId(), "hi there 333"));*/
     }
 
     @Override
@@ -38,6 +36,7 @@ public class CommentServiceImpl implements CommentService {
             String username = (found.isPresent()) ? found.get().getUsername() : null;
             cupList.add(new CommentUserNameProtocol(comment, username));
         });
+
         return cupList;
     }
 
